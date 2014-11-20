@@ -42,7 +42,8 @@ fn start() {
         println!("Minimum word length set to {}", difficulty.min);
         println!("Maximum word length set to {}", difficulty.max);
     
-        let words = *get_words(&difficulty);
+        let words: Box<Vec<String>> = get_words(&difficulty);
+
 
     }
 }
