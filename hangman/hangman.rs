@@ -42,12 +42,12 @@ fn start() {
         println!("Minimum word length set to {}", difficulty.min);
         println!("Maximum word length set to {}", difficulty.max);
     
-        let words = get_words(&difficulty);
+        let words = *get_words(&difficulty);
 
     }
 }
 
-fn get_words(difficulty: &Difficulty) -> Vec<String> {
+fn get_words(difficulty: &Difficulty) -> Box<Vec<String>> {
     let mut words = Vec::new();
     let min = difficulty.min;
     let max = difficulty.max;
@@ -74,6 +74,6 @@ fn get_words(difficulty: &Difficulty) -> Vec<String> {
         }
     }
     println!("Read in {} words.", counter);
-    words
+    box words
 }
 
