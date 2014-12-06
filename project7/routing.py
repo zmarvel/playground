@@ -1,6 +1,7 @@
 import os, string, sys
 
 import copy
+from Queue import Queue
 from collections import deque, defaultdict
 from math import sqrt
 from random import shuffle
@@ -28,17 +29,6 @@ class Grid:
             print '|' + ' '.join([format_num(self.d[(x, y)], nSpaces) for x in range(self.width)]) + '|'
         print strDelim
 
-    def remove_path(self, path):
-        for point in path:
-            if self.d[point] == -2:
-                self.d[point] = 0
-
-    def remove_paths(self):
-        for x in range(0, self.width):
-            for y in range(0, self.height):
-                if self.d[(x, y)] == -2:
-                    self.d[(x, y)] = 0
-
 
 # The grid is basically a dictionary. We can treat this as a graph where each node has 4 neighbors.
 # Each neighbor contributes an in-edge as well as an out-edge.
@@ -55,6 +45,31 @@ class Graph:
 
     def adj(self, (x, y)):
         return [u for u in [(x+1, y), (x-1, y), (x, y+1), (x, y-1)] if u in self.grid.d.keys()]
+
+    def check_path(self, path, s, t):
+        for point in path:
+            val = self.getVal(point)
+            if val == -2 or val == -1:
+                return False
+            elif val != 0:
+                if point != s and point != t:
+                    return False
+        return True
+
+    def put_path(self, path, source, target):
+        for point in path:
+            if point != source and point != target:
+                self.putVal(point, -2)
+    
+    def remove_path(self, path):
+        for point in path:
+            if self.getVal(point) == -2:
+                self.putVal(point, 0)
+
+    def remove_paths(self):
+        for v in self.vertices():
+            if self.getVal(v) == -2:
+                self.putVal(v, 0)
 
     # put the value val for vertex u
     def putVal(self, u, val):
@@ -94,7 +109,6 @@ def traceback(g, t, parents):
     path.append(t)
     t = parents[t]
     while parents[t] != t:
-        g.putVal(t, -2)
         path.append(t)
         t = parents[t]
     return path
@@ -109,31 +123,70 @@ def find_paths(grid, points):
     graph = Graph(grid)
     paths = []
     queue = deque(points)
-    failed = []
     passed = []
-    i = 0
+    failed = defaultdict(lambda: 0)
+    #removed = [] # removed stack
+    removed = Queue() # queue
+
     while queue:
-        s, t = queue.popleft()
-        print(s, t)
+        p = queue.popleft()
+        s, t = p
+        print(p)
+    
+        replaced = []
+        while not removed.empty():
+            r_p = removed.get()
+            r_s, r_t = r_p
+            r_parents = bfs(graph, r_s, r_t)
+            if r_parents:
+                r_path = traceback(graph, r_t, r_parents)
+                replaced.append((r_p, r_path))
+                graph.put_path(r_path, r_s, r_t)
+            else:
+                removed.put(r_p)
+                for p, path in replaced:
+                    graph.remove_path(path)
+                    removed.put(p)
+                last_path = paths.pop()
+                last_p = passed.pop()
+                graph.remove_path(last_path)
+                removed.put(last_p)
+                print(u'Backing up... removed {} paths.'.format(removed.qsize()))
+                continue
+        if not removed.empty(): continue
+                
         parents = bfs(graph, s, t)
+        
         if not parents:
-            i += 1
-            print(u'{}: Backing up...'.format(i))
-            grid.remove_path(paths.pop())
-            #queue.append((s, t))
-            queue.appendleft(passed.pop())
-            #grid.remove_paths()
-            #shuffle(points)
-            #queue.extend(passed)
-            queue.appendleft((s, t))
-            if failed.count((s, t)) > len(points):
+            last_path = paths.pop()
+            last_pair = passed.pop()
+            graph.remove_path(last_path)
+
+            # store the paths we've removed so we can try to avoid computing
+            # them again, if they work still
+            #removed.append((last_pair, last_path)) # stack
+            removed.put(p)
+            removed.put(last_pair) # queue
+
+            print(u'Backing up... removed {} paths.'.format(removed.qsize()))
+
+            failed[p] += 1
+
+            # put the point back to its first in line place so we can try again
+            #queue.appendleft(p)
+
+            # if we've removed every other path and it still isn't working
+            if failed[p] > graph.num_vertices():
                 return None
-            failed.append((s, t))
             continue
-        i = 0
+                    
+        # if we failed to find a path previously but we've found one now, reset
+        # the counter for how many times it has failed.
+
         #print(path)
         path = traceback(graph, t, parents)
-        passed.append((s, t))
+        graph.put_path(path, s, t)
+        passed.append(p)
         paths.append(path)
     return paths
 
