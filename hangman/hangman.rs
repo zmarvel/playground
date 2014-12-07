@@ -16,7 +16,8 @@ struct Hangman {
 }
 
 fn main() {
-    let hangman = Hangman::new();
+    let mut hangman = Hangman::new();
+    hangman.start()
 }
 
 impl Hangman {
@@ -32,60 +33,43 @@ impl Hangman {
         println!("Minimum word length set to {}", difficulty.min);
         println!("Maximum word length set to {}", difficulty.max);
 
-        let words = Hangman::get_words(&difficulty);
+        let words: Box<Vec<String>> = Hangman::get_words(&difficulty);
 
         // pick a word
 
         let mut rng = task_rng();
-        let rand_word: &String = rng.choose(&*words.as_slice()).expect("No word.");
-        let mut letters = collections::HashSet::new();
+        let rand_word = rng.choose(words.as_slice()).expect("No word found.").clone();
+        let mut letters: collections::HashSet<char> = collections::HashSet::new();
         println!("{}", rand_word);
         for letter in rand_word.as_slice().chars() {
-            letters.insert(letter);
+            letters.insert(letter.clone());
         }
 
         Hangman {
             state: 0,
-            word: *rand_word,
-            letters: letters,
+            word: rand_word,
+            letters: letters.clone(),
             matched: collections::HashSet::new()
         }
-
     }
 
     fn get_difficulty() -> Difficulty {
-        let mut difficulty: Difficulty;
-        loop {
-            io::print(">");
+        let mut difficulty: Option<Difficulty> = None;
+        while difficulty.is_none() {
+            print!(">");
             let input = &stdio::stdin()
                 .read_line()
                 .ok()
                 .expect("Failed to read line.");
 
-            let difficulty_opt = match input.as_slice() {
-                "easy\n"   => Some(Difficulty { min: 3, max: 5 }),
-                "medium\n" => Some(Difficulty { min: 5, max: 7 }),
-                "hard\n"   => Some(Difficulty { min: 7, max: 9 }),
-                _          => None
-            };
-
-            match input.as_slice() {
-                "easy\n"   => difficulty = Difficulty { min: 3, max: 5 },
-                "medium\n" => difficulty = Difficulty { min: 5, max: 7 },
-                "hard\n"   => difficulty = Difficulty { min: 7, max: 9 },
+            match input.as_slice().trim_right_chars('\n') {
+                "easy"   => difficulty = Some(Difficulty { min: 3, max: 5 }),
+                "medium" => difficulty = Some(Difficulty { min: 5, max: 7 }),
+                "hard"   => difficulty = Some(Difficulty { min: 7, max: 9 }),
                 _          => continue
             }
-
-//            difficulty = match difficulty_opt {
-//                Some(d) => d,
-//                None    => {
-//                    println!("Invalid input.");
-//                    println!("Please enter a difficulty: easy, medium, or hard:");
-//                    continue
-//                }
-//            };
         }
-        difficulty
+        difficulty.expect("No difficulty set.")
     }
 
     fn get_words(difficulty: &Difficulty) -> Box<Vec<String>> {
@@ -115,5 +99,62 @@ impl Hangman {
         println!("Read in {} words.", counter);
         box words
     }
-}
 
+    fn start(&mut self) {
+        let mut reader = stdio::stdin();
+        
+        self.print_state();
+        println!("");
+        print!(">");
+        for line in reader.lock().lines() {
+            if !self.is_over() {
+                let input = line.ok().expect("Unable to read input."); // change this
+
+                if input.as_slice().trim_right_chars('\n') == "bye" {
+                    break
+                } else {
+                    match &input.as_slice().char_at(0) {
+                        x if self.letters.contains(x) => {
+                            self.matched.insert(x.clone());
+                            self.print_state();
+                            println!("");
+                            print!(">");
+                        },
+                        _                             => {
+                            self.state += 1;
+                            self.print_state();
+                            println!("");
+                            print!(">");
+                        }
+                    }
+                }
+            } else {
+                break
+            }
+        }
+
+    }
+    
+    fn is_over(&self) -> bool {
+        // do we have all the letters?
+        if self.state == 6 {
+            true
+        } else if self.letters == self.matched {
+            true
+        } else {
+            false
+        }
+    }
+
+    fn print_state(&self) {
+        println!("State: {}", self.state);
+
+        for letter in self.word.as_slice().chars() {
+            if self.matched.contains(&letter) {
+                print!("{} ", letter)
+            } else {
+                print!("_ ")
+            }
+        }
+    }
+}
