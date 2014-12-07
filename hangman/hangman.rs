@@ -8,13 +8,13 @@ struct Difficulty {
 }
 
 fn main() {
-
     start();
 }
 
 fn start() {
     println!("WELCOME TO HANGMAN");
-    println!("Please enter a difficulty: easy, medium, or hard:");
+    println!("Type 'bye' at any time to quit.");
+    println!("Please enter a difficulty: easy, medium, or hard.");
 
     loop {
         io::print(">");
@@ -22,6 +22,10 @@ fn start() {
                             .read_line()
                             .ok()
                             .expect("Failed to read line.");
+
+        if input.as_slice() == "bye\n" {
+            break;
+        }
 
         let difficulty_opt = match input.as_slice() {
             "easy\n"   => Some(Difficulty { min: 3, max: 5 }),
@@ -43,15 +47,11 @@ fn start() {
         println!("Maximum word length set to {}", difficulty.max);
     
         let words: Box<Vec<String>> = get_words(&difficulty);
-
-
     }
 }
 
 fn get_words(difficulty: &Difficulty) -> Box<Vec<String>> {
     let mut words = Vec::new();
-    let min = difficulty.min;
-    let max = difficulty.max;
 
     let path = Path::new("/usr/share/dict/words");
     let words_file = io::File::open(&path).ok().expect("Error opening file.");
@@ -60,7 +60,7 @@ fn get_words(difficulty: &Difficulty) -> Box<Vec<String>> {
     loop {
         match reader.read_line() {
             Ok(line) => {
-                if min < line.len() && line.len() < max {
+                if difficulty.min < line.len() && line.len() < difficulty.max {
                     words.push(line
                                .as_slice()
                                .trim_right_chars('\n')
@@ -70,7 +70,7 @@ fn get_words(difficulty: &Difficulty) -> Box<Vec<String>> {
             }
             Err(why) => match why.kind {
                 io::EndOfFile => break,
-                _             => fail!("Error reading file: {}", why)
+                _             => panic!("Error reading file: {}", why)
             }
         }
     }
