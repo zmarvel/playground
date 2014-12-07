@@ -108,7 +108,7 @@ impl Hangman {
                 }
                 Err(why) => match why.kind {
                     io::EndOfFile => break,
-                    _             => fail!("Error reading file: {}", why)
+                    _             => panic!("Error reading file: {}", why)
                 }
             }
         }
