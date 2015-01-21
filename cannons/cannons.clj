@@ -1,13 +1,12 @@
-(ns app.core
-  (:require clojure.set))
+(ns cannons.core)
 
 (defn word-collision
-  "I don't do a whole lot."
   [w1 w2]
-  (clojure.set/union
-    (set (map (fn [x] (when (not (.contains w2 (.toString x))) x)) w1))
-    (set (map (fn [x] (when (not (.contains w1 (.toString x))) x)) w2))))
+    [(reduce (fn [x] (.replaceFirst w2 (.toString x) "")) w1)
+     (reduce (fn [x] (.replaceFirst w1 (.toString x) "")) w2)])
 
-(defn main
-  []
-  (println (word-collision "hill" "bill")))
+(doseq [line (take-while (partial not= ":q") (repeatedly read-line))]
+  (let [[left-word right-word] (.split line " ")
+        [left-score right-score] (word-collision left-word right-word)]
+    (println (into left-score right-score))
+    (println (count left-score) (count right-score))))
