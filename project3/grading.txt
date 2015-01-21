@@ -1,0 +1,18 @@
+BinarySearchTree methods
+insert                                               2/2
+successor                                            2/2
+predecessor                                          2/2
+search                                               2/2
+delete_node                                          2/2
+
+AVL Tree methods
+insert                                               1/2
+successor                                            2/2
+predecessor                                          2/2
+search                                               1/2
+delete_node                                          1/2
+
+Seg Intersect algorithm runs correctly, passes tests 1/5
+
+Graphs comparing BST and AVL                         0/5
+                                                    18/30
