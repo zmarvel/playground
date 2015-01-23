@@ -2,11 +2,24 @@
 
 (defn word-collision
   [w1 w2]
-    [(reduce (fn [x] (.replaceFirst w2 (.toString x) "")) w1)
-     (reduce (fn [x] (.replaceFirst w1 (.toString x) "")) w2)])
+  (let [left-letters (reduce
+                       (fn [acc x] (assoc acc x (inc (get acc x 0))))
+                       {}
+                       w1)
+        right-letters (reduce
+                        (fn [acc x] (assoc acc x (inc (get acc x 0))))
+                        {}
+                        w2)]
+    (merge-with (fn [x y]
+                  (let [diff (- x y)]
+                    (cond
+                      (> diff 0) :left
+                      (< diff 0) :right
+                      :else diff)))
+                left-letters
+                right-letters)))
 
 (doseq [line (take-while (partial not= ":q") (repeatedly read-line))]
   (let [[left-word right-word] (.split line " ")
-        [left-score right-score] (word-collision left-word right-word)]
-    (println (into left-score right-score))
-    (println (count left-score) (count right-score))))
+        result (word-collision left-word right-word)]
+    (println result)))
